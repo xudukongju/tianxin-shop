@@ -14,12 +14,10 @@ services:
     name: tianxin-shop
     runtime: node
     plan: free
+    region: oregon
     rootDir: server
     buildCommand: npm install
     startCommand: node --experimental-sqlite sync-server.js
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: PORT
-        value: "3001"
-    pullRequestPreviewsEnabled: false
