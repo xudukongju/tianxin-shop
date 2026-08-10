@@ -1,6 +1,14 @@
 # Render 部署配置（自带 HTTPS，WebSocket 同源）
 # 部署方式：在 Render 新建 Web Service → 连接 GitHub 仓库 → 选本文件所在仓库 → Render 自动识别此配置
 # 或直接点 README 里的「Deploy to Render」按钮一键部署。
+#
+# 说明：本配置为【免费计划】版本，已移除持久化磁盘。
+#   免费计划下房间数据在「重新部署」时会重置（平时正常使用不丢，够情侣玩）。
+#   若想数据永久保存：把实例升级到 Starter($7/月 起)，并在本文件末尾加回下面这段：
+#   disk:
+#     name: tianxin-data
+#     mountPath: /opt/render/project/src/server
+#     sizeGB: 1
 services:
   - type: web
     name: tianxin-shop
@@ -15,10 +23,3 @@ services:
       - key: PORT
         value: "3001"
     pullRequestPreviewsEnabled: false
-    # ⚠️ 持久化磁盘：仅在付费计划(Starter 及以上)可用。
-    #    免费计划请删除下面这段 disk 配置再部署，否则会报错。
-    #    挂载到 server 目录，使 tianxin.db (房间数据) 与 vapid.json 持久保存。
-    disk:
-      name: tianxin-data
-      mountPath: /opt/render/project/src/server
-      sizeGB: 1
