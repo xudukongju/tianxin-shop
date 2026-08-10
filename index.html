@@ -15,85 +15,133 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- 顶部标题 -->
-        <header class="shop-header">
-            <div class="header-top">
-                <h1 class="shop-title">🌸 我们的甜心小店 🌸</h1>
+        <!-- ============ 小店首页 ============ -->
+        <div class="page page-home active" id="pageHome">
+            <header class="shop-header">
+                <h1 class="shop-title">🌸 我们的甜心小店</h1>
                 <p class="shop-subtitle">只属于我们两个人的小天地 💕</p>
-            </div>
-        </header>
+            </header>
 
-        <!-- 连接状态条（点此连接另一半） -->
-        <div class="sync-bar" id="syncBar">
-            <span class="sync-icon" id="syncIcon">💔</span>
-            <span class="sync-text" id="syncText">点此连接另一半，开启实时同步</span>
-        </div>
-
-        <!-- 顶部信息栏 -->
-        <div class="top-bar">
-            <div class="coin-balance">
-                <span class="heart-icon">💖</span>
-                <span class="coin-count" id="coinCount">48</span>
-                <span class="coin-label">甜心币</span>
+            <!-- 今日小甜 -->
+            <div class="today-card" id="todayCard">
+                <div class="today-label">💗 今日小甜</div>
+                <div class="today-text" id="todayText"></div>
+                <div class="today-sub" id="todaySub"></div>
             </div>
-            <button class="check-in-btn" id="checkInBtn">
-                <span>签到</span>
-                <span class="coin-bag">🪙</span>
-            </button>
-        </div>
 
-        <!-- 主标签 -->
-        <div class="main-tabs">
-            <div class="main-tab active" data-view="shop">
-                <span class="tab-icon">🛒</span>
-                <span>点单</span>
-            </div>
-            <div class="main-tab" data-view="orders">
-                <span class="tab-icon">📜</span>
-                <span>我的订单</span>
-            </div>
-        </div>
-
-        <!-- 点单视图 -->
-        <div class="main-content" id="shopView">
-            <nav class="sidebar">
-                <div class="side-item" data-category="cook">
-                    <span class="side-icon">🍳</span>
-                    <span class="side-label">点菜</span>
+            <!-- 状态栏：甜心币 + 亲密度 -->
+            <div class="stat-bar">
+                <div class="stat-coin">
+                    <span class="stat-emoji">💖</span>
+                    <div class="stat-col">
+                        <span class="stat-num" id="coinCount">48</span>
+                        <span class="stat-cap">甜心币</span>
+                    </div>
                 </div>
-                <div class="side-item active" data-category="menu">
-                    <span class="side-icon">💕</span>
-                    <span class="side-label">点单</span>
+                <div class="stat-intimacy">
+                    <span class="stat-emoji">❤️</span>
+                    <div class="stat-col">
+                        <span class="stat-num" id="intimacyNum">0</span>
+                        <span class="stat-cap" id="intimacyCap">亲密度</span>
+                    </div>
+                    <div class="stat-mini-bar"><i id="intimacyMini"></i></div>
                 </div>
-                <div class="side-item" data-category="play">
-                    <span class="side-icon">✈️</span>
-                    <span class="side-label">想去玩</span>
-                </div>
-                <div class="side-item" data-category="limited">
-                    <span class="side-icon">⭐</span>
-                    <span class="side-label">限定</span>
-                </div>
-            </nav>
-            <div class="menu-area">
-                <div class="menu-list" id="menuList"></div>
+                <button class="check-in-btn" id="checkInBtn">
+                    <span>签到</span><span class="coin-bag">🪙</span>
+                </button>
             </div>
+
+            <!-- 连接状态条 -->
+            <div class="sync-bar" id="syncBar">
+                <span class="sync-icon" id="syncIcon">💔</span>
+                <span class="sync-text" id="syncText">点此连接另一半，开启实时同步</span>
+            </div>
+
+            <!-- 分类横滑 -->
+            <div class="cat-tabs" id="catTabs">
+                <div class="cat-chip active" data-cat="love">💕 宠爱</div>
+                <div class="cat-chip" data-cat="feed">🍰 投喂</div>
+                <div class="cat-chip" data-cat="date">🎡 约会</div>
+                <div class="cat-chip" data-cat="limited">⭐ 限定</div>
+            </div>
+
+            <!-- 菜单 -->
+            <div class="menu-list" id="menuList"></div>
         </div>
 
-        <!-- 我的订单视图 -->
-        <div class="orders-view" id="ordersView">
-            <div class="orders-list" id="ordersList"></div>
+        <!-- ============ 待办 ============ -->
+        <div class="page page-todo" id="pageTodo">
+            <div class="section-title">
+                <span>💌 Ta 给我点的</span>
+                <span class="section-tip">完成它，让 Ta 被宠到</span>
+            </div>
+            <div class="todo-list" id="todoListTa"></div>
+
+            <div class="section-title">
+                <span>📤 我点的</span>
+                <span class="section-tip">等 Ta 来接单</span>
+            </div>
+            <div class="todo-list" id="todoListMe"></div>
         </div>
 
-        <!-- 左侧浮动：给 Ta 发消息 -->
+        <!-- ============ 我们的 ============ -->
+        <div class="page page-ours" id="pageOurs">
+            <!-- 亲密度大卡 -->
+            <div class="intimacy-card">
+                <svg class="ring" viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+                    <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+                </svg>
+                <div class="ring-center">
+                    <div class="ring-level" id="intimacyLevel">初识期 🌱</div>
+                    <div class="ring-num"><span id="intimacyNum2">0</span> 亲密度</div>
+                </div>
+            </div>
+            <div class="ours-tip" id="intimacyToNext">每完成一单，亲密度 +5，一起升级吧 💞</div>
+
+            <!-- 纪念日 -->
+            <div class="card-block">
+                <div class="block-title">📅 我们的纪念日</div>
+                <div class="block-row">
+                    <input id="anniversaryInput" class="mini-input" type="date">
+                    <button class="mini-btn" id="saveAnniversary">保存</button>
+                </div>
+                <div class="anniversary-show" id="anniversaryShow">还没设置纪念日哦～</div>
+            </div>
+
+            <!-- 称呼 -->
+            <div class="card-block">
+                <div class="block-title">💞 怎么称呼彼此</div>
+                <div class="block-row">
+                    <label class="mini-label">我叫</label>
+                    <input id="meNameInput" class="mini-input flex1" placeholder="比如：小柚" maxlength="8">
+                </div>
+                <div class="block-row">
+                    <label class="mini-label">Ta 叫</label>
+                    <input id="taNameInput" class="mini-input flex1" placeholder="比如：宝贝" maxlength="8">
+                </div>
+                <button class="mini-btn block-btn" id="saveNames">保存称呼</button>
+            </div>
+
+            <div class="ours-foot">甜心小店 · 你们的小秘密基地 🌸</div>
+        </div>
+
+        <!-- ============ 底部 Tab ============ -->
+        <nav class="tabbar">
+            <div class="tab active" data-view="home"><span class="tab-ico">🏠</span><span>小店</span></div>
+            <div class="tab" data-view="todo"><span class="tab-ico">💌</span><span>待办</span><span class="tab-badge" id="todoBadge">0</span></div>
+            <div class="tab" data-view="ours"><span class="tab-ico">💕</span><span>我们的</span></div>
+        </nav>
+
+        <!-- 浮动按钮 -->
         <div class="floating-msg" id="floatingMsg">💌</div>
-        <!-- 右侧浮动：购物车 -->
         <div class="floating-cart" id="floatingCart">
             <div class="cart-badge" id="cartBadge">0</div>
             <span class="cart-icon">🛒</span>
         </div>
     </div>
 
-    <!-- 连接另一半弹窗 -->
+    <!-- 连接弹窗 -->
     <div class="modal" id="connectModal">
         <div class="modal-card">
             <div class="modal-emoji">💞</div>
@@ -137,38 +185,26 @@
         <div class="cart-overlay" id="cartOverlay"></div>
         <div class="cart-panel">
             <div class="cart-header">
-                <div class="cart-title">
-                    <span>🍰</span>
-                    <span>甜心购物车 (<span id="cartCountTitle">0</span>)</span>
-                </div>
+                <div class="cart-title"><span>🍰</span><span>甜心购物车 (<span id="cartCountTitle">0</span>)</span></div>
                 <button class="clear-cart" id="clearCart">清空</button>
             </div>
             <div class="cart-items" id="cartItems"></div>
             <div class="cart-footer">
                 <div class="cart-summary">
-                    <div class="total-row">
-                        <span>合计</span>
-                        <span class="total-price">💖 <span id="cartTotal">0</span></span>
-                    </div>
-                    <div class="balance-row">
-                        <span>余额</span>
-                        <span><span id="balanceCount">48</span> 💖</span>
-                    </div>
+                    <div class="total-row"><span>合计</span><span class="total-price">💖 <span id="cartTotal">0</span></span></div>
+                    <div class="balance-row"><span>余额</span><span><span id="balanceCount">48</span> 💖</span></div>
                 </div>
-                <button class="checkout-btn" id="checkoutBtn">
-                    <span>💌</span>
-                    <span>发起点单</span>
-                </button>
+                <button class="checkout-btn" id="checkoutBtn"><span>💌</span><span>发起点单</span></button>
             </div>
         </div>
     </div>
 
-    <!-- 点单成功弹窗 -->
+    <!-- 点单成功 -->
     <div class="success-modal" id="successModal">
         <div class="success-content">
             <div class="success-icon">💕</div>
             <h3>点单成功！</h3>
-            <p>你的甜蜜订单已发送给 Ta 啦～</p>
+            <p id="successText">你的甜蜜订单已发送给 Ta 啦～<br>Ta 完成后你们亲密度会上涨哦 💞</p>
             <button class="success-btn" id="successBtn">好哒</button>
         </div>
     </div>

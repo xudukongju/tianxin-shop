@@ -26,15 +26,22 @@ webpush.setVapidDetails('mailto:tianxin@example.com', vapidKeys.publicKey, vapid
 const db = new DatabaseSync(DB_PATH);
 db.exec(`CREATE TABLE IF NOT EXISTS rooms (
     code TEXT PRIMARY KEY, balance INTEGER DEFAULT 48,
-    checked_in INTEGER DEFAULT 0, checkin_date TEXT, updated_at INTEGER
+    checked_in INTEGER DEFAULT 0, checkin_date TEXT, intimacy INTEGER DEFAULT 0, updated_at INTEGER
 );`);
 db.exec(`CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY, room TEXT, name TEXT, emoji TEXT,
-    price INTEGER, qty INTEGER, from_id TEXT, time INTEGER
+    price INTEGER, qty INTEGER, from_id TEXT, status TEXT DEFAULT 'pending', time INTEGER
 );`);
 db.exec(`CREATE TABLE IF NOT EXISTS subscriptions (
     endpoint TEXT PRIMARY KEY, room TEXT, from_id TEXT, p256dh TEXT, auth TEXT
 );`);
+
+// ---------- 列迁移（兼容旧库）----------
+function colExists(table, col) {
+    return db.prepare(`PRAGMA table_info(${table})`).all().some(x => x.name === col);
+}
+if (!colExists('rooms', 'intimacy')) db.exec('ALTER TABLE rooms ADD COLUMN intimacy INTEGER DEFAULT 0');
+if (!colExists('orders', 'status')) db.exec("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'pending'");
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -47,19 +54,20 @@ function loadState(code) {
         return { balance: 48, checkedIn: false, dailyCheckinDate: '', orders: [] };
     }
     const orders = db.prepare('SELECT * FROM orders WHERE room = ? ORDER BY time DESC').all(code)
-        .map(o => ({ id: o.id, name: o.name, emoji: o.emoji, price: o.price, qty: o.qty, from: o.from_id, time: o.time }));
-    return { balance: row.balance, checkedIn: !!row.checked_in, dailyCheckinDate: row.checkin_date || '', orders };
+        .map(o => ({ id: o.id, name: o.name, emoji: o.emoji, price: o.price, qty: o.qty, from: o.from_id, status: o.status || 'pending', time: o.time }));
+    return { balance: row.balance, checkedIn: !!row.checked_in, dailyCheckinDate: row.checkin_date || '', intimacy: row.intimacy || 0, orders };
 }
 function saveRoom(code, st) {
-    db.prepare(`INSERT INTO rooms (code, balance, checked_in, checkin_date, updated_at)
-        VALUES (?,?,?,?,?)
+    db.prepare(`INSERT INTO rooms (code, balance, checked_in, checkin_date, intimacy, updated_at)
+        VALUES (?,?,?,?,?,?)
         ON CONFLICT(code) DO UPDATE SET balance=excluded.balance,
-        checked_in=excluded.checked_in, checkin_date=excluded.checkin_date, updated_at=excluded.updated_at`)
-        .run(code, st.balance, st.checkedIn ? 1 : 0, st.dailyCheckinDate || '', Date.now());
+        checked_in=excluded.checked_in, checkin_date=excluded.checkin_date,
+        intimacy=excluded.intimacy, updated_at=excluded.updated_at`)
+        .run(code, st.balance, st.checkedIn ? 1 : 0, st.dailyCheckinDate || '', st.intimacy || 0, Date.now());
 }
 function saveOrder(code, o) {
-    db.prepare('INSERT OR IGNORE INTO orders (id, room, name, emoji, price, qty, from_id, time) VALUES (?,?,?,?,?,?,?,?)')
-        .run(o.id, code, o.name, o.emoji, o.price, o.qty, o.from, o.time);
+    db.prepare('INSERT OR IGNORE INTO orders (id, room, name, emoji, price, qty, from_id, status, time) VALUES (?,?,?,?,?,?,?,?,?)')
+        .run(o.id, code, o.name, o.emoji, o.price, o.qty, o.from, o.status || 'pending', o.time);
 }
 function roomClients(code) { return (rooms.get(code) || { clients: new Set() }).clients; }
 function roomSubs(code, exceptFrom) {
@@ -143,12 +151,27 @@ wss.on('connection', (ws) => {
             st.balance = Math.max(0, st.balance - total);
             const names = [];
             (msg.items || []).forEach(it => {
-                const o = { id: uid(), name: it.name, emoji: it.emoji, price: it.price, qty: it.qty || 1, from: ws.from, time: Date.now() };
+                const o = { id: uid(), name: it.name, emoji: it.emoji, price: it.price, qty: it.qty || 1, from: ws.from, status: 'pending', time: Date.now() };
                 st.orders.unshift(o); saveOrder(ws.room, o); names.push(`${it.emoji}${it.name}`);
             });
             saveRoom(ws.room, st);
             broadcastState(ws.room);
             sendPush(ws.room, ws.from, '💕 Ta 给你点了一单', '给你点了：' + names.join('、'), '💕');
+
+        } else if (msg.type === 'complete' && ws.room) {
+            const row = db.prepare('SELECT * FROM orders WHERE id = ? AND room = ?').get(msg.orderId, ws.room);
+            if (row && row.status !== 'done') {
+                db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('done', msg.orderId);
+                const st = loadState(ws.room);
+                st.intimacy = (st.intimacy || 0) + 5;
+                st.balance = st.balance + 2;   // 完成方奖励甜心币
+                saveRoom(ws.room, st);
+                broadcastState(ws.room);
+                // 实时通知下单方（ws.from 是完成方，row.from_id 是下单方）
+                const note = JSON.stringify({ type: 'notify', from: ws.from, emoji: row.emoji, text: `完成了你的 ${row.emoji}${row.name}，亲密度 +5` });
+                roomClients(ws.room).forEach(c => { if (c.from === row.from_id && c !== ws && c.readyState === 1) c.send(note); });
+                sendPush(ws.room, ws.from, '💞 Ta 完成了你的单', `${row.emoji}${row.name} 已完成，亲密度 +5`, row.emoji);
+            }
 
         } else if (msg.type === 'checkin' && ws.room) {
             const st = loadState(ws.room);
