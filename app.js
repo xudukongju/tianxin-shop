@@ -1,6 +1,6 @@
 // ========== 配置 ==========
-// 本地调试：ws://localhost:3001；已部署到 Render 公网，直接填 Render 地址
-const SYNC_SERVER = 'wss://tianxin-shop-ef6u.onrender.com';
+// 同源连接：本地开 localhost:3001 自动连本地服务；部署后自动连云端（部署需最新 commit）
+const SYNC_SERVER = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
 const LS_KEY = 'tianxin_shop_v1';
 
 // ========== 菜单数据 ==========
