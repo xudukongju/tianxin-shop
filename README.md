@@ -10,6 +10,14 @@
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xudukongju/tianxin-shop)
 
 > 要重新部署时：点上面按钮 → 用 GitHub 登录授权 → 自动按仓库里的 `render.yaml` 部署。
+
+## ✨ 最新功能（部署最新 commit 后生效）
+- 🔁 **订单闭环**：在「💌 待办」里完成 Ta 给你点的单，Ta 实时收到「完成了你的单」+ 双方亲密度 +5
+- ❤️ **亲密度成长**：完成订单双方涨亲密度，进度环显示关系等级（初识→灵魂伴侣）
+- 💗 **今日小甜**：每天自动一句情话 / 宜忌，氛围感拉满
+- 📅 **纪念日倒计时**：在「💕 我们的」里设置，显示已在一起多少天
+- 🧭 **底部导航**：小店 / 待办 / 我们的，分类改为横滑（宠爱·投喂·约会·限定）
+- 最新 commit：`c2d29ec`
 > 免费计划即可用；若想让数据（房间余额/订单）在重新部署后也不丢，需升级 Starter 计划并启用 `render.yaml` 里的磁盘配置。详见 `DEPLOY.md`。
 
 ## 功能
