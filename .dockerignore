@@ -1,0 +1,13 @@
+node_modules
+server/node_modules
+server/tianxin.db
+server/tianxin.db-*
+server/vapid.json
+.workbuddy
+.git
+.gitignore
+Dockerfile
+.dockerignore
+README.md
+DEPLOY.md
+miniprogram
