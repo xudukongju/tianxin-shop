@@ -2,10 +2,14 @@
 
 复刻小红书「情侣点单小店」的移动端应用：点甜心券、加购物车、发起点单，**两台手机实时同步、互发消息/通知**。
 
-## 🚀 一键部署到 Render（免费 · 自带 HTTPS）
+## 🚀 已部署到 Render（免费 · 自带 HTTPS）
+公网地址：**https://tianxin-shop-ef6u.onrender.com**
+
+手机/电脑直接打开，点「💔 连接另一半」输入相同房间号即可实时同步。
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xudukongju/tianxin-shop)
 
-点上面按钮 → 用 GitHub 登录授权一次 → 自动按仓库里的 `render.yaml` 部署，得到 `https://xxx.onrender.com`。
+> 要重新部署时：点上面按钮 → 用 GitHub 登录授权 → 自动按仓库里的 `render.yaml` 部署。
 > 免费计划即可用；若想让数据（房间余额/订单）在重新部署后也不丢，需升级 Starter 计划并启用 `render.yaml` 里的磁盘配置。详见 `DEPLOY.md`。
 
 ## 功能
