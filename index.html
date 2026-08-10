@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="甜心小店">
+    <meta name="theme-color" content="#ff6b8a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <title>我们的甜心小店</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部标题 -->
+        <header class="shop-header">
+            <div class="header-top">
+                <h1 class="shop-title">🌸 我们的甜心小店 🌸</h1>
+                <p class="shop-subtitle">只属于我们两个人的小天地 💕</p>
+            </div>
+        </header>
+
+        <!-- 连接状态条（点此连接另一半） -->
+        <div class="sync-bar" id="syncBar">
+            <span class="sync-icon" id="syncIcon">💔</span>
+            <span class="sync-text" id="syncText">点此连接另一半，开启实时同步</span>
+        </div>
+
+        <!-- 顶部信息栏 -->
+        <div class="top-bar">
+            <div class="coin-balance">
+                <span class="heart-icon">💖</span>
+                <span class="coin-count" id="coinCount">48</span>
+                <span class="coin-label">甜心币</span>
+            </div>
+            <button class="check-in-btn" id="checkInBtn">
+                <span>签到</span>
+                <span class="coin-bag">🪙</span>
+            </button>
+        </div>
+
+        <!-- 主标签 -->
+        <div class="main-tabs">
+            <div class="main-tab active" data-view="shop">
+                <span class="tab-icon">🛒</span>
+                <span>点单</span>
+            </div>
+            <div class="main-tab" data-view="orders">
+                <span class="tab-icon">📜</span>
+                <span>我的订单</span>
+            </div>
+        </div>
+
+        <!-- 点单视图 -->
+        <div class="main-content" id="shopView">
+            <nav class="sidebar">
+                <div class="side-item" data-category="cook">
+                    <span class="side-icon">🍳</span>
+                    <span class="side-label">点菜</span>
+                </div>
+                <div class="side-item active" data-category="menu">
+                    <span class="side-icon">💕</span>
+                    <span class="side-label">点单</span>
+                </div>
+                <div class="side-item" data-category="play">
+                    <span class="side-icon">✈️</span>
+                    <span class="side-label">想去玩</span>
+                </div>
+                <div class="side-item" data-category="limited">
+                    <span class="side-icon">⭐</span>
+                    <span class="side-label">限定</span>
+                </div>
+            </nav>
+            <div class="menu-area">
+                <div class="menu-list" id="menuList"></div>
+            </div>
+        </div>
+
+        <!-- 我的订单视图 -->
+        <div class="orders-view" id="ordersView">
+            <div class="orders-list" id="ordersList"></div>
+        </div>
+
+        <!-- 左侧浮动：给 Ta 发消息 -->
+        <div class="floating-msg" id="floatingMsg">💌</div>
+        <!-- 右侧浮动：购物车 -->
+        <div class="floating-cart" id="floatingCart">
+            <div class="cart-badge" id="cartBadge">0</div>
+            <span class="cart-icon">🛒</span>
+        </div>
+    </div>
+
+    <!-- 连接另一半弹窗 -->
+    <div class="modal" id="connectModal">
+        <div class="modal-card">
+            <div class="modal-emoji">💞</div>
+            <h3>连接你的另一半</h3>
+            <p class="modal-desc">输入相同的「情侣房间号」，你们的小店就能实时同步、互发消息啦～</p>
+            <input id="roomInput" class="modal-input" placeholder="例如：5201314" maxlength="20">
+            <button class="modal-btn" id="joinRoomBtn">进入小店 💕</button>
+            <p class="modal-hint">房间号随便设，只要你们俩填一样就行</p>
+        </div>
+    </div>
+
+    <!-- 发消息弹窗 -->
+    <div class="modal" id="msgModal">
+        <div class="modal-card">
+            <div class="modal-emoji">💌</div>
+            <h3>给 Ta 发条消息</h3>
+            <div class="quick-msgs" id="quickMsgs">
+                <span class="quick-chip">想你啦 💕</span>
+                <span class="quick-chip">在干嘛呀～</span>
+                <span class="quick-chip">么么哒 😘</span>
+                <span class="quick-chip">快回来陪我</span>
+                <span class="quick-chip">吃饭了没 🍚</span>
+                <span class="quick-chip">戳一下 👉</span>
+            </div>
+            <input id="msgInput" class="modal-input" placeholder="写点什么给 Ta…" maxlength="50">
+            <button class="modal-btn" id="sendMsgBtn">发送 💞</button>
+        </div>
+    </div>
+
+    <!-- 通知横幅 -->
+    <div class="notify-banner" id="notifyBanner">
+        <span class="notify-emoji" id="notifyEmoji">💌</span>
+        <div class="notify-body">
+            <div class="notify-title" id="notifyTitle">Ta 给你发了消息</div>
+            <div class="notify-text" id="notifyText"></div>
+        </div>
+    </div>
+
+    <!-- 购物车抽屉 -->
+    <div class="cart-drawer" id="cartDrawer">
+        <div class="cart-overlay" id="cartOverlay"></div>
+        <div class="cart-panel">
+            <div class="cart-header">
+                <div class="cart-title">
+                    <span>🍰</span>
+                    <span>甜心购物车 (<span id="cartCountTitle">0</span>)</span>
+                </div>
+                <button class="clear-cart" id="clearCart">清空</button>
+            </div>
+            <div class="cart-items" id="cartItems"></div>
+            <div class="cart-footer">
+                <div class="cart-summary">
+                    <div class="total-row">
+                        <span>合计</span>
+                        <span class="total-price">💖 <span id="cartTotal">0</span></span>
+                    </div>
+                    <div class="balance-row">
+                        <span>余额</span>
+                        <span><span id="balanceCount">48</span> 💖</span>
+                    </div>
+                </div>
+                <button class="checkout-btn" id="checkoutBtn">
+                    <span>💌</span>
+                    <span>发起点单</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 点单成功弹窗 -->
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <div class="success-icon">💕</div>
+            <h3>点单成功！</h3>
+            <p>你的甜蜜订单已发送给 Ta 啦～</p>
+            <button class="success-btn" id="successBtn">好哒</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# 依赖
+node_modules/
+
+# 本地数据库与密钥（部署后由服务端自动生成，不要提交）
+server/tianxin.db
+server/tianxin.db-*
+server/vapid.json
+
+# 工作区/本地配置
+.workbuddy/
+.DS_Store

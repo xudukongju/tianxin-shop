@@ -1,0 +1,16 @@
+{
+  "name": "tianxin-sync-server",
+  "version": "1.0.0",
+  "description": "甜心小店情侣实时同步服务 (WebSocket)",
+  "main": "sync-server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --experimental-sqlite sync-server.js"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7",
+    "ws": "^8.18.0"
+  }
+}

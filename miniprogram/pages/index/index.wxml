@@ -1,0 +1,142 @@
+<view class="app">
+    <!-- 顶部标题 -->
+    <view class="header">
+        <view class="title">🌸 我们的甜心小店 🌸</view>
+        <view class="subtitle">只属于我们两个人的小天地 💕</view>
+    </view>
+
+    <!-- 连接状态条 -->
+    <view class="sync-bar {{connected ? 'on' : ''}}" bindtap="onSyncTap">
+        <text class="sync-icon">{{syncIcon}}</text>
+        <text class="sync-text">{{syncText}}</text>
+    </view>
+
+    <!-- 信息栏 -->
+    <view class="top-bar">
+        <view class="coin">
+            <text class="heart">💖</text>
+            <text class="coin-num">{{balance}}</text>
+            <text class="coin-label">甜心币</text>
+        </view>
+        <view class="checkin {{checkinDim ? 'dim' : ''}}" bindtap="doCheckin">
+            <text>{{checkinLabel}}</text>
+            <text class="bag">🪙</text>
+        </view>
+    </view>
+
+    <!-- 主标签 -->
+    <view class="tabs">
+        <view class="tab {{currentView==='shop' ? 'active' : ''}}" data-view="shop" bindtap="onTab">🛒 点单</view>
+        <view class="tab {{currentView==='orders' ? 'active' : ''}}" data-view="orders" bindtap="onTab">📜 我的订单</view>
+    </view>
+
+    <!-- 点单视图 -->
+    <view class="main" wx:if="{{currentView==='shop'}}">
+        <view class="sidebar">
+            <view wx:for="{{sidebar}}" wx:key="cat" class="side-item {{activeCategory===item.cat ? 'active' : ''}}" data-cat="{{item.cat}}" bindtap="onSideTap">
+                <text class="side-icon">{{item.icon}}</text>
+                <text class="side-label">{{item.label}}</text>
+            </view>
+        </view>
+        <scroll-view class="menu-area" scroll-y>
+            <view wx:for="{{menuList}}" wx:key="id" class="card">
+                <view class="emoji">{{item.emoji}}</view>
+                <view class="info">
+                    <view class="name">{{item.name}}</view>
+                    <view class="desc">{{item.desc}}</view>
+                    <view class="price">💖 {{item.price}}</view>
+                </view>
+                <view class="add" data-id="{{item.id}}" bindtap="onAdd">+</view>
+            </view>
+            <view style="height:120rpx"></view>
+        </scroll-view>
+    </view>
+
+    <!-- 订单视图 -->
+    <scroll-view class="orders" scroll-y wx:if="{{currentView==='orders'}}">
+        <block wx:if="{{orders.length===0}}">
+            <view class="empty">还没有订单哦～\n去点单或给 Ta 发消息试试 💕</view>
+        </block>
+        <view wx:for="{{orders}}" wx:key="id" class="order-card">
+            <text class="o-emoji">{{item.emoji}}</text>
+            <view class="o-info">
+                <view class="o-name">{{item.name}}{{item.qty>1 ? ' ×'+item.qty : ''}}</view>
+                <view class="o-meta">{{item.from===myId ? '我点的' : 'Ta 点的'}} · {{item.time}}</view>
+            </view>
+            <text class="o-price">💖 {{item.price*(item.qty||1)}}</text>
+        </view>
+        <view style="height:120rpx"></view>
+    </scroll-view>
+
+    <!-- 浮动按钮 -->
+    <view class="f-msg" bindtap="openMsg">💌</view>
+    <view class="f-cart" bindtap="openCart">
+        <view class="badge" wx:if="{{cartCount>0}}">{{cartCount}}</view>
+        <text>🛒</text>
+    </view>
+
+    <!-- 购物车抽屉 -->
+    <view class="mask" wx:if="{{showCart}}" bindtap="closeCart"></view>
+    <view class="drawer" wx:if="{{showCart}}">
+        <view class="d-head">
+            <text>🍰 甜心购物车 ({{cartCount}})</text>
+            <text class="clear" bindtap="clearCart">清空</text>
+        </view>
+        <scroll-view class="d-items" scroll-y>
+            <block wx:if="{{cartList.length===0}}">
+                <view class="d-empty">购物车还是空的呀～\n去点几张甜心券吧 💕</view>
+            </block>
+            <view wx:for="{{cartList}}" wx:key="id" class="d-row">
+                <text class="d-emoji">{{item.emoji}}</text>
+                <text class="d-name">{{item.name}}{{item.qty>1 ? ' ×'+item.qty : ''}}</text>
+                <text class="d-price">💖 {{item.subtotal}}</text>
+                <view class="d-qty">
+                    <view class="q" data-id="{{item.id}}" data-d="-1" bindtap="onQty">−</view>
+                    <text class="qn">{{item.qty}}</text>
+                    <view class="q" data-id="{{item.id}}" data-d="1" bindtap="onQty">+</view>
+                </view>
+            </view>
+        </scroll-view>
+        <view class="d-foot">
+            <view class="sum">
+                <view class="row">合计 <text class="tp">💖 {{cartTotal}}</text></view>
+                <view class="row dim">余额 <text>{{balance}} 💖</text></view>
+            </view>
+            <view class="checkout {{cartDisabled ? 'off' : ''}}" bindtap="checkout">💌 发起点单</view>
+        </view>
+    </view>
+
+    <!-- 连接弹窗 -->
+    <view class="modal" wx:if="{{showConnect}}" bindtap="closeConnect">
+        <view class="m-card" catchtap="noop">
+            <view class="m-emoji">💞</view>
+            <view class="m-title">连接你的另一半</view>
+            <view class="m-desc">输入相同的「情侣房间号」，你们的小店就能实时同步、互发消息啦～</view>
+            <input class="m-input" placeholder="例如：5201314" value="{{roomInput}}" bindinput="onRoomInput" />
+            <view class="m-btn" bindtap="joinRoom">进入小店 💕</view>
+            <view class="m-hint">房间号随便设，只要你们俩填一样就行</view>
+        </view>
+    </view>
+
+    <!-- 发消息弹窗 -->
+    <view class="modal" wx:if="{{showMsg}}" bindtap="closeMsg">
+        <view class="m-card" catchtap="noop">
+            <view class="m-emoji">💌</view>
+            <view class="m-title">给 Ta 发条消息</view>
+            <view class="chips">
+                <text wx:for="{{quickMsgs}}" wx:key="*this" class="chip" data-t="{{item}}" bindtap="onQuick">{{item}}</text>
+            </view>
+            <input class="m-input" placeholder="写点什么给 Ta…" value="{{msgInput}}" bindinput="onMsgInput" />
+            <view class="m-btn" bindtap="sendMsg">发送 💞</view>
+        </view>
+    </view>
+
+    <!-- 通知横幅 -->
+    <view class="notify {{notify.show ? 'show' : ''}}" bindtap="closeNotify">
+        <text class="n-emoji">{{notify.emoji}}</text>
+        <view class="n-body">
+            <view class="n-title">{{notify.title}}</view>
+            <view class="n-text">{{notify.text}}</view>
+        </view>
+    </view>
+</view>

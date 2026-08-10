@@ -1,0 +1,11 @@
+{
+  "pages": ["pages/index/index"],
+  "window": {
+    "navigationBarBackgroundColor": "#ff6b8a",
+    "navigationBarTitleText": "我们的甜心小店",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#fff5f8"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "我们的甜心小店",
+  "short_name": "甜心小店",
+  "description": "只属于两个人之间的情侣点单小店",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff5f8",
+  "theme_color": "#ff6b8a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
