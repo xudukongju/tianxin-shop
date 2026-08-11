@@ -461,15 +461,28 @@ const LOCAL_FALLBACK_NEWS = [
     { title: '散步这件小事，原来这么治愈', summary: '不用去很远的地方，楼下那条路、河边那段堤，也能走出一整天的好心情。', source: '小铺文摘', category: '生活', url: '' },
     { title: '两个人一起做饭，是最朴素的浪漫', summary: '你切菜我掌勺，油烟里也能聊出很多废话，那些废话后来都变成了回忆。', source: '小铺文摘', category: '生活', url: '' },
 ];
+// 客户端缓存：把「上次成功拉到的真实新闻」存到 localStorage，
+// 这样即使后来用静态方式（直接打开 index.html）打开，也能看到上一次的真实报纸，而不是兜底文摘。
+const NEWS_CACHE_KEY = 'tianxin_news_cache';
+function loadCachedNews() {
+    try { const raw = localStorage.getItem(NEWS_CACHE_KEY); if (!raw) return null; const d = JSON.parse(raw); if (d && d.items && d.items.length) return d; } catch (e) {}
+    return null;
+}
+function saveCachedNews(d) {
+    try { localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ date: d.date, vol: d.vol, displayDate: d.displayDate, items: d.items })); } catch (e) {}
+}
 function zhDateLocal() {
     const d = new Date();
     const w = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${w}`;
 }
-function renderPaper(items, offline) {
-    paperEyebrow.textContent = 'DAILY PAPER';
-    paperDate.textContent = zhDateLocal() + (offline ? ' · 离线文摘' : '');
-    const note = offline ? '<div class="paper-note">当前未连接后端，展示本地精选文摘；用部署后的地址打开可看每日实时时事 📰</div>' : '';
+function renderPaper(items, opts) {
+    opts = opts || {};
+    paperEyebrow.textContent = opts.vol ? ('DAILY PAPER · VOL. ' + String(opts.vol).padStart(2, '0')) : 'DAILY PAPER';
+    paperDate.textContent = opts.date || (zhDateLocal() + (opts.offline ? ' · 离线文摘' : ''));
+    let note = '';
+    if (opts.offline) note = '<div class="paper-note">当前未连接后端，展示本地精选文摘；用部署后的地址打开可看每日实时时事 📰</div>';
+    else if (opts.cached) note = '<div class="paper-note">显示上次缓存的报纸，联网打开将自动更新 📰</div>';
     paperList.innerHTML = note + (items || []).map(n => {
         const ext = n.url && /^https?:/.test(n.url);
         return `<a class="paper-article" href="${ext ? n.url : 'javascript:void(0)'}" ${ext ? 'target="_blank" rel="noopener"' : ''}>
@@ -480,7 +493,9 @@ function renderPaper(items, offline) {
     }).join('');
 }
 function loadPaper() {
-    paperList.innerHTML = '<div class="paper-loading">正在排版今天的报纸… 📰</div>';
+    const cached = loadCachedNews();
+    if (cached) renderPaper(cached.items, { vol: cached.vol, date: cached.displayDate, cached: true });
+    else paperList.innerHTML = '<div class="paper-loading">正在排版今天的报纸… 📰</div>';
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     fetch('/api/news', { signal: ctrl.signal })
@@ -488,14 +503,16 @@ function loadPaper() {
         .then(d => {
             clearTimeout(timer);
             if (d && d.items && d.items.length) {
-                paperEyebrow.textContent = 'DAILY PAPER · VOL. ' + String(d.vol || 1).padStart(2, '0');
-                paperDate.textContent = d.displayDate || '';
-                renderPaper(d.items, false);
-            } else {
-                renderPaper(LOCAL_FALLBACK_NEWS, true);
+                saveCachedNews(d);
+                renderPaper(d.items, { vol: d.vol, date: d.displayDate });
+            } else if (!cached) {
+                renderPaper(LOCAL_FALLBACK_NEWS, { offline: true });
             }
         })
-        .catch(() => { clearTimeout(timer); renderPaper(LOCAL_FALLBACK_NEWS, true); });
+        .catch(() => {
+            clearTimeout(timer);
+            if (!cached) renderPaper(LOCAL_FALLBACK_NEWS, { offline: true });
+        });
 }
 function sendPaper() {
     if (!connected) { toast('先连接另一半才能送报纸哦'); openConnect(); return; }
@@ -553,6 +570,7 @@ syncBar.addEventListener('click', () => { if (!state.room || !connected) openCon
 $('#saveAnniversary').addEventListener('click', saveAnniversary);
 $('#saveNames').addEventListener('click', saveNames);
 $('#paperSend').addEventListener('click', sendPaper);
+$('#paperRefresh').addEventListener('click', loadPaper);
 
 // 弹窗关闭：按钮 + 点击遮罩空白处
 function closeMsg() { msgModal.classList.remove('show'); }
