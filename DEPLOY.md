@@ -34,6 +34,22 @@ Render 对个人项目免费，自动签发 HTTPS 证书，WebSocket 同源，�
 
 > 嫌连 GitHub 麻烦？也可以在 Render 里选 "Deploy from existing repo" 用拖拽/手动上传，或用 `render.yaml`（仓库里已提供）一键部署。
 
+#### 方案 A 补充：开启 Auto-Deploy（每次 push 自动上线）
+Render 在创建服务时，**Auto-Deploy 默认是关闭的**（这也是为什么之前 push 代码没自动重新部署）。开启后，以后每次 `git push` 到该分支，Render 会**自动拉代码 → 构建 → 上线**，不用再手动点 Manual Deploy。
+
+**开启步骤**：
+1. 打开 https://dashboard.render.com → 点进你的 `tianxin-shop` Web Service。
+2. 顶部点 **Settings**（设置）标签。
+3. 往下滚到 **Branch（分支）** 那一栏，找到 **Auto-Deploy** 项（现在应为 No / Off）。
+4. 改成 **Yes / On**，然后点 **Save Changes** 保存。
+5. 回到服务主页，确认分支是 **`main`**（我们 push 的就是 main）。
+
+**两个关键提醒**：
+- 自动部署**只对开启之后的新 push 生效**，不会回头部署已经 push 过的旧提交。
+  若当前云端还跑着旧代码，开启 Auto-Deploy 后，再 push 一次（哪怕是空提交 `git commit --allow-empty -m "trigger" && git push`）就会自动部署最新版。
+  不想动提交，也可以直接去服务页点右上角 **Manual Deploy → Deploy latest commit** 一次性手动上线。
+- 免费实例重新部署（含自动部署）后，`server/tianxin.db`（房间数据）会重置；平时正常使用不重新部署则数据保留。
+
 ### 方案 B：国内云服务器（腾讯云轻量 / 阿里云 ECS）
 适合想要国内稳定访问、或后续做更多功能的场景。
 

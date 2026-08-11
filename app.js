@@ -120,6 +120,11 @@ const notifyBanner = $('#notifyBanner');
 const todoListTa = $('#todoListTa');
 const todoListMe = $('#todoListMe');
 const todoBadge = $('#todoBadge');
+const pagePaper = $('#pagePaper');
+const paperList = $('#paperList');
+const paperEyebrow = $('#paperEyebrow');
+const paperDate = $('#paperDate');
+const paperSend = $('#paperSend');
 
 // ========== 今日小甜 ==========
 function renderToday() {
@@ -372,7 +377,10 @@ function connectWS() {
         if (m.type === 'state') { onState(m.state, m.peers); }
         else if (m.type === 'peers') { updateSyncUI(m.peers); }
         else if (m.type === 'ready') { setupPush(m.vapidPublicKey); }
-        else if (m.type === 'notify' && m.from !== myId) { showNotify('💌 Ta 给你发了消息', m.text, m.emoji || '💌'); }
+        else if (m.type === 'notify' && m.from !== myId) {
+            if (m.kind === 'paper') showNotify('📰 今日报纸', m.text || '今天的报纸来了，一起看看', '📰');
+            else showNotify('💌 Ta 给你发了消息', m.text, m.emoji || '💌');
+        }
     };
     ws.onclose = () => { connected = false; updateSyncUI(0); setTimeout(() => { if (state.room) connectWS(); }, 2500); };
     ws.onerror = () => { try { ws.close(); } catch (e) {} };
@@ -437,8 +445,32 @@ function switchView(view) {
     $('#pageHome').classList.toggle('active', view === 'home');
     $('#pageTodo').classList.toggle('active', view === 'todo');
     $('#pageOurs').classList.toggle('active', view === 'ours');
+    $('#pagePaper').classList.toggle('active', view === 'paper');
     if (view === 'todo') renderTodo();
     if (view === 'ours') renderIntimacy();
+    if (view === 'paper') loadPaper();
+}
+
+// ========== 报纸（每日时事） ==========
+function loadPaper() {
+    paperList.innerHTML = '<div class="paper-loading">正在排版今天的报纸… 📰</div>';
+    fetch('/api/news').then(r => r.json()).then(d => {
+        paperEyebrow.textContent = 'DAILY PAPER · VOL. ' + String(d.vol || 1).padStart(2, '0');
+        paperDate.textContent = d.displayDate || '';
+        paperList.innerHTML = (d.items || []).map(n => {
+            const ext = n.url && n.url.startsWith('http');
+            return `<a class="paper-article" href="${ext ? n.url : 'javascript:void(0)'}" ${ext ? 'target="_blank" rel="noopener"' : ''}>
+                <div class="paper-meta"><span class="paper-cat">${n.category || '时事'}</span><span class="paper-src">${n.source || ''}</span></div>
+                <div class="paper-headline">${n.title}</div>
+                <div class="paper-summary">${n.summary || ''}</div>
+            </a>`;
+        }).join('');
+    }).catch(() => { paperList.innerHTML = '<div class="paper-loading">今天的报纸还没印好，稍后再来看看 📰</div>'; });
+}
+function sendPaper() {
+    if (!connected) { toast('先连接另一半才能送报纸哦'); openConnect(); return; }
+    ws.send(JSON.stringify({ type: 'notify', kind: 'paper', emoji: '📰', text: '今天的报纸来了，一起看看 📰', from: myId }));
+    toast('已送给 Ta 📰');
 }
 
 // ========== 纪念日 ==========
@@ -490,6 +522,7 @@ $('#msgInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendM
 syncBar.addEventListener('click', () => { if (!state.room || !connected) openConnect(); });
 $('#saveAnniversary').addEventListener('click', saveAnniversary);
 $('#saveNames').addEventListener('click', saveNames);
+$('#paperSend').addEventListener('click', sendPaper);
 
 document.querySelectorAll('.quick-chip').forEach(chip => {
     chip.addEventListener('click', () => { $('#msgInput').value = chip.textContent; $('#msgInput').focus(); });

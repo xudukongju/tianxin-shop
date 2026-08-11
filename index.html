@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="甜心小店">
-    <meta name="theme-color" content="#ff6b8a">
+    <meta name="theme-color" content="#efe2d0">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.svg">
     <title>我们的甜心小店</title>
@@ -126,10 +126,26 @@
             <div class="ours-foot">甜心小店 · 你们的小秘密基地 🌸</div>
         </div>
 
+        <!-- ============ 报纸 ============ -->
+        <div class="page page-paper" id="pagePaper">
+            <div class="paper-masthead">
+                <div class="paper-eyebrow" id="paperEyebrow">DAILY PAPER</div>
+                <h1 class="paper-title">今日报纸</h1>
+                <div class="paper-rule"><span>❧</span></div>
+                <div class="paper-desc">不追赶所有消息，只留下几件值得坐下来聊一聊的事。</div>
+                <div class="paper-date" id="paperDate"></div>
+            </div>
+            <div class="paper-list" id="paperList">
+                <div class="paper-loading">正在排版今天的报纸… 📰</div>
+            </div>
+            <button class="paper-send" id="paperSend">📰 送给 Ta 看</button>
+        </div>
+
         <!-- ============ 底部 Tab ============ -->
         <nav class="tabbar">
             <div class="tab active" data-view="home"><span class="tab-ico">🏠</span><span>小店</span></div>
             <div class="tab" data-view="todo"><span class="tab-ico">💌</span><span>待办</span><span class="tab-badge" id="todoBadge">0</span></div>
+            <div class="tab" data-view="paper"><span class="tab-ico">📰</span><span>报纸</span></div>
             <div class="tab" data-view="ours"><span class="tab-ico">💕</span><span>我们的</span></div>
         </nav>
 

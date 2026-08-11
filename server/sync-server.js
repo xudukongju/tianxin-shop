@@ -42,9 +42,91 @@ function colExists(table, col) {
 }
 if (!colExists('rooms', 'intimacy')) db.exec('ALTER TABLE rooms ADD COLUMN intimacy INTEGER DEFAULT 0');
 if (!colExists('orders', 'status')) db.exec("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'pending'");
+if (!colExists('rooms', 'last_paper_date')) db.exec("ALTER TABLE rooms ADD COLUMN last_paper_date TEXT DEFAULT ''");
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+// ---------- 每日报纸（时事新闻）----------
+// 多源容错：国内可访问的「知乎日报」+ 全球可访问的「BBC 中文」，任一通即可；
+// 都不通时回退到精选文摘，保证报纸永远不空。
+const NEWS_CACHE_FILE = path.join(__dirname, 'news_cache.json');
+const PAPER_BASE = Date.UTC(2026, 0, 1);
+const NEWS_FEEDS = (process.env.NEWS_FEED_URLS ? JSON.parse(process.env.NEWS_FEED_URLS) : [
+    { url: 'https://news-at.zhihu.com/api/4/news/latest', type: 'zhihu', category: '每日时事', source: '知乎日报' },
+    { url: 'https://feeds.bbci.co.uk/zhongwen/simp/rss.xml', type: 'rss', category: '国际时事', source: 'BBC 中文' },
+]);
+const FALLBACK_NEWS = [
+    { title: '雨天适合慢一点：城市里的六家独立书店', summary: '从旧街转角到河岸边，六间让人愿意安静坐上一下午的小书店。', source: '小铺文摘', category: '生活', url: '#' },
+    { title: '为什么一起吃饭，仍是家里重要的小事', summary: '餐桌不只是放下食物的地方，也是一天里重新遇见彼此的时刻。', source: '小铺文摘', category: '家庭', url: '#' },
+    { title: '阳台种香草：从一盆薄荷开始', summary: '不需要很大的空间，阳光、清水和一点耐心就能拥有自己的小花园。', source: '小铺文摘', category: '生活', url: '#' },
+    { title: '一张唱片的夜晚：适合夏末听的五首歌', summary: '把灯调暗一点，让缓慢的旋律陪你度过雨后的夜晚。', source: '小铺文摘', category: '音乐', url: '#' },
+    { title: '散步这件小事，原来这么治愈', summary: '不用去很远的地方，楼下那条路也能走出好心情。', source: '小铺文摘', category: '生活', url: '#' },
+];
+function paperVol() { return Math.floor((Date.now() - PAPER_BASE) / 86400000); }
+function zhDate(d) {
+    const w = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${w}`;
+}
+async function fetchRSS(url, category, source) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (tianxin-paper)' }, signal: ctrl.signal });
+        const xml = await res.text();
+        const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+        return items.slice(0, 10).map(it => {
+            const b = it[1];
+            const g = (tag) => {
+                const m = b.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/\\1>`, 'i'));
+                return m ? m[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+            };
+            let title = g('title'), desc = g('description'), link = g('link');
+            desc = desc.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
+            return { title, summary: desc.slice(0, 150), source, url: link, category };
+        }).filter(x => x.title);
+    } catch (e) { return []; }
+    finally { clearTimeout(timer); }
+}
+async function fetchZhihu(url, category, source) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (tianxin-paper)' }, signal: ctrl.signal });
+        const data = await res.json();
+        const stories = (data.stories || []).slice(0, 8);
+        return stories.map(s => ({
+            title: s.title, summary: (s.hint || '').slice(0, 150), source, url: s.url || ('https://daily.zhihu.com/story/' + s.id), category
+        })).filter(x => x.title);
+    } catch (e) { return []; }
+    finally { clearTimeout(timer); }
+}
+let newsCache = null;
+async function getNews() {
+    const today = todayStr();
+    if (newsCache && newsCache.date === today) return newsCache;
+    if (!newsCache) {
+        try { const f = JSON.parse(fs.readFileSync(NEWS_CACHE_FILE, 'utf8')); if (f && f.items && f.items.length) newsCache = f; } catch (e) {}
+    }
+    let items = [];
+    for (const f of NEWS_FEEDS) {
+        let r = [];
+        if (f.type === 'zhihu') r = await fetchZhihu(f.url, f.category, f.source);
+        else if (f.type === 'rss') r = await fetchRSS(f.url, f.category, f.source);
+        if (r.length) items = items.concat(r);
+        if (items.length >= 7) break;
+    }
+    const seen = new Set();
+    items = items.filter(x => { if (seen.has(x.title)) return false; seen.add(x.title); return true; });
+    if (items.length < 3) {
+        if (newsCache && newsCache.items.length) items = newsCache.items;
+        else items = FALLBACK_NEWS.map((n, i) => ({ ...n, id: 'fb' + i }));
+    }
+    items = items.slice(0, 7).map((n, i) => ({ id: 'n' + i, ...n }));
+    newsCache = { date: today, vol: paperVol(), displayDate: zhDate(new Date()), items };
+    try { fs.writeFileSync(NEWS_CACHE_FILE, JSON.stringify(newsCache)); } catch (e) {}
+    return newsCache;
+}
 
 function loadState(code) {
     const row = db.prepare('SELECT * FROM rooms WHERE code = ?').get(code);
@@ -89,9 +171,9 @@ function broadcastPeers(code) {
     const payload = JSON.stringify({ type: 'peers', peers: roomClients(code).size });
     roomClients(code).forEach(c => { if (c.readyState === 1) c.send(payload); });
 }
-function sendPush(code, exceptFrom, title, body, emoji) {
+function sendPush(code, exceptFrom, title, body, emoji, kind) {
     const subs = roomSubs(code, exceptFrom);
-    const payload = JSON.stringify({ title, body, emoji: emoji || '💌' });
+    const payload = JSON.stringify({ title, body, emoji: emoji || '💌', kind: kind || 'msg' });
     subs.forEach(s => {
         webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload)
             .catch(err => {
@@ -107,6 +189,15 @@ const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript
 const server = http.createServer((req, res) => {
     let urlPath = decodeURIComponent(req.url.split('?')[0]);
     if (urlPath === '/') urlPath = '/index.html';
+
+    // 每日报纸：实时时事新闻接口
+    if (urlPath === '/api/news') {
+        getNews().then(data => {
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify(data));
+        }).catch(() => { res.writeHead(500); res.end('{}'); });
+        return;
+    }
     // 防目录穿越 & 只允许项目根目录下的白名单文件
     const filePath = path.join(ROOT, urlPath);
     if (!filePath.startsWith(ROOT) || urlPath.includes('..') ||
@@ -156,7 +247,7 @@ wss.on('connection', (ws) => {
             });
             saveRoom(ws.room, st);
             broadcastState(ws.room);
-            sendPush(ws.room, ws.from, '💕 Ta 给你点了一单', '给你点了：' + names.join('、'), '💕');
+            sendPush(ws.room, ws.from, '💕 Ta 给你点了一单', '给你点了：' + names.join('、'), '💕', 'msg');
 
         } else if (msg.type === 'complete' && ws.room) {
             const row = db.prepare('SELECT * FROM orders WHERE id = ? AND room = ?').get(msg.orderId, ws.room);
@@ -168,9 +259,9 @@ wss.on('connection', (ws) => {
                 saveRoom(ws.room, st);
                 broadcastState(ws.room);
                 // 实时通知下单方（ws.from 是完成方，row.from_id 是下单方）
-                const note = JSON.stringify({ type: 'notify', from: ws.from, emoji: row.emoji, text: `完成了你的 ${row.emoji}${row.name}，亲密度 +5` });
+                const note = JSON.stringify({ type: 'notify', from: ws.from, emoji: row.emoji, kind: 'msg', text: `完成了你的 ${row.emoji}${row.name}，亲密度 +5` });
                 roomClients(ws.room).forEach(c => { if (c.from === row.from_id && c !== ws && c.readyState === 1) c.send(note); });
-                sendPush(ws.room, ws.from, '💞 Ta 完成了你的单', `${row.emoji}${row.name} 已完成，亲密度 +5`, row.emoji);
+                sendPush(ws.room, ws.from, '💞 Ta 完成了你的单', `${row.emoji}${row.name} 已完成，亲密度 +5`, row.emoji, 'msg');
             }
 
         } else if (msg.type === 'checkin' && ws.room) {
@@ -183,9 +274,9 @@ wss.on('connection', (ws) => {
             }
 
         } else if (msg.type === 'notify' && ws.room) {
-            sendPush(ws.room, ws.from, '💌 Ta 给你发了消息', msg.text || '', msg.emoji || '💌');
+            sendPush(ws.room, ws.from, '💌 Ta 给你发了消息', msg.text || '', msg.emoji || '💌', msg.kind || 'msg');
             // 在线设备同时通过 WS 实时收到（应用内横幅）
-            const note = JSON.stringify({ type: 'notify', from: ws.from, emoji: msg.emoji || '💌', text: msg.text || '' });
+            const note = JSON.stringify({ type: 'notify', from: ws.from, emoji: msg.emoji || '💌', kind: msg.kind || 'msg', text: msg.text || '' });
             roomClients(ws.room).forEach(c => { if (c !== ws && c.readyState === 1) c.send(note); });
         }
     });
@@ -193,6 +284,20 @@ wss.on('connection', (ws) => {
         if (ws.room && rooms.has(ws.room)) { rooms.get(ws.room).clients.delete(ws); broadcastPeers(ws.room); }
     });
 });
+
+// ---------- 每日报纸推送：每 30 分钟，对在线房间且今日未送达的，推送一次 ----------
+setInterval(() => {
+    const today = todayStr();
+    for (const [code, room] of rooms) {
+        if (room.clients.size === 0) continue;
+        const row = db.prepare('SELECT last_paper_date FROM rooms WHERE code = ?').get(code);
+        if (row && row.last_paper_date === today) continue;
+        db.prepare('UPDATE rooms SET last_paper_date = ? WHERE code = ?').run(today, code);
+        const payload = JSON.stringify({ type: 'notify', kind: 'paper', from: '系统', emoji: '📰', text: '今日报纸已送达，戳开看看今天的时事 📰' });
+        room.clients.forEach(c => { if (c.readyState === 1) c.send(payload); });
+        sendPush(code, '', '📰 今日报纸', '今天的时事来了，一起看看吧', '📰', 'paper');
+    }
+}, 30 * 60 * 1000);
 
 server.listen(PORT, () => {
     console.log(`💞 甜心小店服务已启动: http://localhost:${PORT}  (WebSocket 同源)`);

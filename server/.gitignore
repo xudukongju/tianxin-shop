@@ -1,4 +1,5 @@
 node_modules/
 tianxin.db
 vapid.json
+news_cache.json
 npm-debug.log
