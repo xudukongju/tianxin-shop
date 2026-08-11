@@ -149,17 +149,22 @@
             <div class="tab" data-view="ours"><span class="tab-ico">💕</span><span>我们的</span></div>
         </nav>
 
-        <!-- 浮动按钮 -->
-        <div class="floating-msg" id="floatingMsg">💌</div>
-        <div class="floating-cart" id="floatingCart">
-            <div class="cart-badge" id="cartBadge">0</div>
-            <span class="cart-icon">🛒</span>
+        <!-- 底部操作栏：发消息 + 购物车（替代原来的两个浮动按钮） -->
+        <div class="action-dock">
+            <button class="act act-msg" id="dockMsg">
+                <span class="act-ico">💌</span><span>发给 Ta</span>
+            </button>
+            <button class="act act-cart" id="dockCart">
+                <span class="act-ico">🛒</span><span>购物车</span>
+                <span class="cart-badge" id="cartBadge">0</span>
+            </button>
         </div>
     </div>
 
     <!-- 连接弹窗 -->
     <div class="modal" id="connectModal">
         <div class="modal-card">
+            <button class="modal-close" id="closeConnect" aria-label="关闭">×</button>
             <div class="modal-emoji">💞</div>
             <h3>连接你的另一半</h3>
             <p class="modal-desc">输入相同的「情侣房间号」，你们的小店就能实时同步、互发消息啦～</p>
@@ -172,6 +177,7 @@
     <!-- 发消息弹窗 -->
     <div class="modal" id="msgModal">
         <div class="modal-card">
+            <button class="modal-close" id="closeMsg" aria-label="关闭">×</button>
             <div class="modal-emoji">💌</div>
             <h3>给 Ta 发条消息</h3>
             <div class="quick-msgs" id="quickMsgs">

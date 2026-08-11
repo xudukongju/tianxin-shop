@@ -452,20 +452,50 @@ function switchView(view) {
 }
 
 // ========== 报纸（每日时事） ==========
+// 客户端兜底文摘：即使没有后端（直接打开 index.html / 静态预览），报纸也永远不空。
+const LOCAL_FALLBACK_NEWS = [
+    { title: '雨天适合慢一点：城市里的六家独立书店', summary: '从旧街转角到河岸边，六间让人愿意安静坐上一下午的小书店，藏着各自的脾气与暖光。', source: '小铺文摘', category: '生活', url: '' },
+    { title: '为什么一起吃饭，仍是家里重要的小事', summary: '餐桌不只是放下食物的地方，也是一天里重新遇见彼此、把话慢慢说开的时刻。', source: '小铺文摘', category: '家庭', url: '' },
+    { title: '阳台种香草：从一盆薄荷开始', summary: '不需要很大的空间，阳光、清水和一点耐心，就能在窗边拥有自己的小花园。', source: '小铺文摘', category: '生活', url: '' },
+    { title: '一张唱片的夜晚：适合夏末听的五首歌', summary: '把灯调暗一点，让缓慢的旋律陪你度过雨后的夜晚，也陪着彼此发一会儿呆。', source: '小铺文摘', category: '音乐', url: '' },
+    { title: '散步这件小事，原来这么治愈', summary: '不用去很远的地方，楼下那条路、河边那段堤，也能走出一整天的好心情。', source: '小铺文摘', category: '生活', url: '' },
+    { title: '两个人一起做饭，是最朴素的浪漫', summary: '你切菜我掌勺，油烟里也能聊出很多废话，那些废话后来都变成了回忆。', source: '小铺文摘', category: '生活', url: '' },
+];
+function zhDateLocal() {
+    const d = new Date();
+    const w = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${w}`;
+}
+function renderPaper(items, offline) {
+    paperEyebrow.textContent = 'DAILY PAPER';
+    paperDate.textContent = zhDateLocal() + (offline ? ' · 离线文摘' : '');
+    const note = offline ? '<div class="paper-note">当前未连接后端，展示本地精选文摘；用部署后的地址打开可看每日实时时事 📰</div>' : '';
+    paperList.innerHTML = note + (items || []).map(n => {
+        const ext = n.url && /^https?:/.test(n.url);
+        return `<a class="paper-article" href="${ext ? n.url : 'javascript:void(0)'}" ${ext ? 'target="_blank" rel="noopener"' : ''}>
+            <div class="paper-meta"><span class="paper-cat">${n.category || '时事'}</span><span class="paper-src">${n.source || ''}</span></div>
+            <div class="paper-headline">${n.title}</div>
+            <div class="paper-summary">${n.summary || ''}</div>
+        </a>`;
+    }).join('');
+}
 function loadPaper() {
     paperList.innerHTML = '<div class="paper-loading">正在排版今天的报纸… 📰</div>';
-    fetch('/api/news').then(r => r.json()).then(d => {
-        paperEyebrow.textContent = 'DAILY PAPER · VOL. ' + String(d.vol || 1).padStart(2, '0');
-        paperDate.textContent = d.displayDate || '';
-        paperList.innerHTML = (d.items || []).map(n => {
-            const ext = n.url && n.url.startsWith('http');
-            return `<a class="paper-article" href="${ext ? n.url : 'javascript:void(0)'}" ${ext ? 'target="_blank" rel="noopener"' : ''}>
-                <div class="paper-meta"><span class="paper-cat">${n.category || '时事'}</span><span class="paper-src">${n.source || ''}</span></div>
-                <div class="paper-headline">${n.title}</div>
-                <div class="paper-summary">${n.summary || ''}</div>
-            </a>`;
-        }).join('');
-    }).catch(() => { paperList.innerHTML = '<div class="paper-loading">今天的报纸还没印好，稍后再来看看 📰</div>'; });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    fetch('/api/news', { signal: ctrl.signal })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(d => {
+            clearTimeout(timer);
+            if (d && d.items && d.items.length) {
+                paperEyebrow.textContent = 'DAILY PAPER · VOL. ' + String(d.vol || 1).padStart(2, '0');
+                paperDate.textContent = d.displayDate || '';
+                renderPaper(d.items, false);
+            } else {
+                renderPaper(LOCAL_FALLBACK_NEWS, true);
+            }
+        })
+        .catch(() => { clearTimeout(timer); renderPaper(LOCAL_FALLBACK_NEWS, true); });
 }
 function sendPaper() {
     if (!connected) { toast('先连接另一半才能送报纸哦'); openConnect(); return; }
@@ -508,13 +538,13 @@ function toast(msg) {
 }
 
 // ========== 事件绑定 ==========
-$('#floatingCart').addEventListener('click', () => cartDrawer.classList.add('show'));
+$('#dockCart').addEventListener('click', () => cartDrawer.classList.add('show'));
 $('#cartOverlay').addEventListener('click', () => cartDrawer.classList.remove('show'));
 $('#clearCart').addEventListener('click', clearCart);
 $('#checkoutBtn').addEventListener('click', checkout);
 $('#successBtn').addEventListener('click', () => successModal.classList.remove('show'));
 $('#checkInBtn').addEventListener('click', doCheckin);
-$('#floatingMsg').addEventListener('click', openMsg);
+$('#dockMsg').addEventListener('click', openMsg);
 $('#sendMsgBtn').addEventListener('click', () => sendMsg($('#msgInput').value));
 $('#joinRoomBtn').addEventListener('click', joinRoom);
 $('#roomInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
@@ -523,6 +553,14 @@ syncBar.addEventListener('click', () => { if (!state.room || !connected) openCon
 $('#saveAnniversary').addEventListener('click', saveAnniversary);
 $('#saveNames').addEventListener('click', saveNames);
 $('#paperSend').addEventListener('click', sendPaper);
+
+// 弹窗关闭：按钮 + 点击遮罩空白处
+function closeMsg() { msgModal.classList.remove('show'); }
+function closeConnect() { connectModal.classList.remove('show'); }
+$('#closeMsg').addEventListener('click', closeMsg);
+$('#closeConnect').addEventListener('click', closeConnect);
+msgModal.addEventListener('click', (e) => { if (e.target === msgModal) closeMsg(); });
+connectModal.addEventListener('click', (e) => { if (e.target === connectModal) closeConnect(); });
 
 document.querySelectorAll('.quick-chip').forEach(chip => {
     chip.addEventListener('click', () => { $('#msgInput').value = chip.textContent; $('#msgInput').focus(); });
